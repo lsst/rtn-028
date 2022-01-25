@@ -1,57 +1,37 @@
-..
-  Technote content.
-
-  See https://developer.lsst.io/restructuredtext/style.html
-  for a guide to reStructuredText writing.
-
-  Do not put the title, authors or other metadata in this document;
-  those are automatically added.
-
-  Use the following syntax for sections:
-
-  Sections
-  ========
-
-  and
-
-  Subsections
-  -----------
-
-  and
-
-  Subsubsections
-  ^^^^^^^^^^^^^^
-
-  To add images, add the image file (png, svg or jpeg preferred) to the
-  _static/ directory. The reST syntax for adding the image is
-
-  .. figure:: /_static/filename.ext
-     :name: fig-label
-
-     Caption text.
-
-   Run: ``make html`` and ``open _build/html/index.html`` to preview your work.
-   See the README at https://github.com/lsst-sqre/lsst-technote-bootstrap or
-   this repo's README for more info.
-
-   Feel free to delete this instructional comment.
-
 :tocdepth: 1
-
-.. Please do not modify tocdepth; will be fixed when a new Sphinx theme is shipped.
 
 .. sectnum::
 
-.. TODO: Delete the note below before merging new content to the master branch.
+Abstract
+========
 
-.. note::
+We have profiled the various pipetasks in the DRP pipeline and have characterized the memory and CPU time usage of those task for processing DESC DC2 data.  We have also studied the efficiency of running on Rome and Milan processors and various levels of node occupancy.  This information is used to estimate the node hours required to do the first year of DRP processing of the Rubin WFD survey.
 
-   **This technote is not yet published.**
+Motivation and Background
+=========================
 
-   We have profiled the various pipetasks in the DRP pipeline and have characterized the memory and CPU time usage of those task for processing DESC DC2 data.  We have also studied the efficiency of running on Rome and Milan processors and various levels of node occupancy.  This information is used to estimate the node hours required to do the first year of DRP processing of the Rubin WFD survey.
+This study was orginally motivated by the need for the Dark Energy Science Collaboration (DESC) to understand its computing resource needs for systematics studies that require pixel-level reprocessing of the first year (Y1) of Rubin data.  In practice, these studies would involve the reprocessing of several smaller datasets, using alternative algorithms and/or data selections, or could include simulated images.  Therefore, as rough guide to the needed resources, DESC settled on the goal of reprocessing 10% of Y1 data 10 times as the target value for this study.  For simplicity, we've recast this doing a full DRP processing of the Y1 Wide Fast Deep (WFD) Rubin survey observations.  This is ~80% of the Y1 data, and it provides a relatively homogenous data set that's relevant for DESC's need and which makes the resource estimation more straight forward.
 
-.. Add content here.
-.. Do not include the document title (it's automatically added from metadata.yaml).
+Inputs to Estimating the Y1 WFD DRP Processing
+==============================================
+
+The basic input to this study is the cadence of observations during Y1.  We have used version v2.0 of the 10 year baseline cadence that is available from the `UW server <http://astro-lsst-01.astro.washington.edu:8080/>`__ as `baseline_v2.0_10yrs.db <http://astro-lsst-01.astro.washington.edu:8080/fbs_db/baseline/baseline_v2.0_10yrs.db>`__. 
+
+
+Estimation Procedure
+====================
+
+Profiling the Individual Pipetasks
+==================================
+
+Processing Time Results
+=======================
+
+Disk Storage Needs
+==================
+
+Throughout Scaling with Node Occupancy
+======================================
 
 .. .. rubric:: References
 
