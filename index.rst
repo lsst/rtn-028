@@ -10,7 +10,7 @@ We have profiled the various pipetasks in the DRP pipeline and have characterize
 Motivation and Background
 =========================
 
-This study was orginally motivated by the need for the Dark Energy Science Collaboration (DESC) to understand its computing resource needs for systematics assessments that require pixel-level reprocessing of the first year (Y1) of Rubin data.  In practice, these assessments would involve the reprocessing of several smaller datasets, using alternative algorithms and/or data selections, or could include simulated images.  Therefore, as rough guide to the needed resources, DESC settled on the goal of reprocessing 10% of Y1 data 10 times as the target workload for this study.  For simplicity, we've recast this as doing a full DRP processing of the Y1 Wide Fast Deep (WFD) Rubin observations.  The WFD survey comprises ~80% of the Y1 data, and it provides a relatively homogenous data set that's relevant for DESC's need and which makes the resource estimation straight forward.
+This study was originally motivated by the need for the Dark Energy Science Collaboration (DESC) to understand its computing resource needs for systematics assessments that require pixel-level reprocessing of the first year (Y1) of Rubin data.  In practice, these assessments would involve the reprocessing of several smaller datasets, using alternative algorithms and/or data selections, or could include simulated images.  Therefore, as rough guide to the needed resources, DESC settled on the goal of reprocessing 10% of Y1 data 10 times as the target workload for this study.  For simplicity, we've recast this as doing a full DRP processing of the Y1 Wide Fast Deep (WFD) Rubin observations.  The WFD survey comprises ~80% of the Y1 data, and it provides a relatively homogeneous data set that's relevant for DESC's need and which makes the resource estimation straight forward.
 
 Inputs to Estimating the Y1 WFD DRP Processing
 ==============================================
@@ -20,7 +20,7 @@ The basic input to this study is the cadence of observations during Y1.  We have
 **Figure 1**: Pointing directions of Y1 visits from baseline cadence v2.0.
 
 .. figure:: /_static/baseline_v2.0_cadence_Y1_observations.png
-   :name: fig-baseline-candence-Y1-observations
+   :name: fig-baseline-cadence-Y1-observations
    :alt: Figure 1
 
 **Table 1**: Number of visits per band for Y1 WFD
@@ -51,9 +51,9 @@ Estimation Procedure
 
 There are a lot of individual pipetasks in the nominal `DRP pipeline`_, and only a subset of them require a substantial amount of computing resources, so for this study, we've only considered those pipetasks in our estimates.  By counting the number of instances of each kind of pipetask involved in processing the full Y1 data set, we can estimate the number of "node-days" required to process those data assuming that the number of concurrent jobs that we can run on a node is limited by the node's memory and the number of available cores.
 
-Given a particular observing cadence, we can extract some key numbers that will give us precise numbers of instances for the visit-level pipetasks, and reasonably close estimates, i.e., within factors of 1.4 or less, for the remaining ones.  For example, for the Y1 WFD survey in the baseline v2.0 cadence, there are 173,682 visits, which when multiplied by the number of science CCDs in the LSSTCam focalplane, 189, yields ~33 million instances of each of the single frame processing pipetasks.   For the pipetasks that operate on coadds, the number of instances depends on the sky map used.  For the DC2 sky map, there are a total of 18,938 tracts and 49 patches per tract.  Estimating the WFD survey to cover 18k square degrees, this yields ~460,000 patches and ~2.5 million coadds, using 6 LSST bands per patch.
+Given a particular observing cadence, we can extract some key numbers that will give us precise numbers of instances for the visit-level pipetasks, and reasonably close estimates, i.e., within factors of 1.4 or less, for the remaining ones.  For example, for the Y1 WFD survey in the baseline v2.0 cadence, there are 173,682 visits, which when multiplied by the number of science CCDs in the LSSTCam focal plane, 189, yields ~33 million instances of each of the single frame processing pipetasks.   For the pipetasks that operate on coadds, the number of instances depends on the sky map used.  For the DC2 sky map, there are a total of 18,938 tracts and 49 patches per tract.  Estimating the WFD survey to cover 18k square degrees, this yields ~460,000 patches and ~2.5 million coadds, using 6 LSST bands per patch.
 
-It's somewhat more difficult to estimate the number of visits per patch per band.  As we'll see in the next section this number is relevant for the resource scaling of many of the coadd-level tasks.  For this, we actually simulate the baseline cadence and calculate those numbers from the overlaps of the focal plane projected onto the DC2 sky map, estimating the focal plane with a circle on the sky with radius ~2 degrees.  In Figure 2, we show the distributions of number of visits per patch for each of the six LSST bands.
+It's somewhat more difficult to estimate the number of visits per patch per band.  As we'll see in the next section, this number is relevant for the resource scaling of many of the coadd-level tasks. To get more precise estimates of the number of visits per band, we simulate the baseline cadence pointings and find number of overlaps with each patch of the focal plane projected onto the DC2 sky map, estimating the extent of the focal plane as a circle on the sky with radius ~2 degrees.  In Figure 2, we show the distributions of number of visits per patch for each of the six LSST bands that we obtained by this procedure for the Y1 WFD observations.
 
 **Figure 2**: Number of visits per patch for Y1 WFD baseline 2.0 observations using the DC2 sky map
 
@@ -65,16 +65,17 @@ It's somewhat more difficult to estimate the number of visits per patch per band
 Profiling the Individual Pipetasks
 ==================================
 
-In order to determine the resource requirements for each pipetask instance, we've profiled the various pipetasks by running the static science part of the DRP pipeline on a tract of Y1 DC2 data and harvested the metadata files that are produced.  These files contain per-process information such as the total CPU time used and the maximum memory that was required, i.e., the maximum resident set size (maxRSS).   Pipetasks that operate on visit-level data have relatively narrow-ranges of CPU time usage and maxRSS values.  For example, as shown in Figure 3, the ``calibrate`` pipetask typically needs ~0.5-1.5 cpu minutes and ~0.79 GB of maxRSS memory.  By contrast, for the pipetasks that involve the coadded images, both the CPU time and maxRSS scale with the number of visits included in the coadd (See Figure 4).  For estimating resource needs for visit-level pipetasks, we take the 95-th percentile value of the CPU time or maxRSS distributions (dashed veritcal lines in Figure 3). For the coadd-level pipetasks, we model the resources needs using a linear fit to the upper envelope of points in the plots of either CPU time or maxRSS versus number of visits in the coadd.  For those plots, the number of visits is determined from averaging over the nImage FITS files, which contain the number of visit-level images contributing to each coadd pixel.
+In order to determine the resource requirements for each pipetask instance, we've profiled the various pipetasks by running the static science part of the DRP pipeline on tract 3828 of the Y1 DC2 data and harvested the metadata files that are produced.  These files contain per-process information such as the total CPU time used and the maximum memory that was required, i.e., the maximum resident set size (maxRSS).   Pipetasks that operate on visit-level data have relatively narrow-ranges of CPU time usage and maxRSS values.  For example, as shown in Figure 3, running on Cori-Haswell nodes at NERSC, the ``calibrate`` pipetask typically needs ~0.5-1.5 CPU minutes and ~0.79 GB of maxRSS memory.  By contrast, for the pipetasks that analyze the coadded images, both the CPU time and maxRSS values scale with the number of visits included in the coadd (See Figure 4).  For estimating resource needs for visit-level pipetasks, we take the 95-th percentile value of the CPU time or maxRSS distributions (dashed vertical lines in Figure 3). For the coadd-level pipetasks, we model the resource needs using a linear fit to the upper envelope of points in the plots of either CPU time or maxRSS versus number of visits in the coadd.  For those plots, the number of visits is determined by averaging over the ``nImage`` FITS files, which contain the number of visit-level images contributing to each coadd pixel.
 
 **Figure 3**: CPU time and maxRSS distributions for the ``calibrate`` pipetask
+running on Cori-Haswell nodes at NERSC
 
 .. figure:: /_static/DC2_Y1_tract_3828_calibrate.png
    :name: fig-calibrate-profile-distributions
    :alt: Figure 3
 
 **Figure 4**: CPU time and maxRSS versus the mean number of visits in the coadd
-for the ``measure`` pipetask
+for the ``measure`` pipetask running on Cori-Haswell nodes at NERSC
 
 .. figure:: /_static/DC2_Y1_tract_3828_measure.png
    :name: fig-measure-resource-vs-num-visits
@@ -84,36 +85,40 @@ for the ``measure`` pipetask
 Processing Time Results
 =======================
 
-**Table 2**: Estimated CPU and memory requirements for key DRP pipetasks
+Combining the per-instance resource estimates for each pipetask with the per-instance information for each pipetask that we gathered from our simulation of the pointings, we obtain the following table of per-instance resource requirements, derived from the actual distributions of pipetask instances as a function of number of visits.  Here ``CPU hours`` is total number of CPU hours integrated over those distributions, and ``max(maxRSS)`` is the maximum of the distribution of ``maxRSS`` values, so that we obtain a conservative constraint the number of jobs can be run concurrently on a node with a given amount of memory.
+
+**Table 2**: Estimated CPU and memory requirements for key DRP pipetasks averaged over the Y1 WFD pointings
 
 .. _table-label:
 .. table:: Estimated CPU and memory requirements for key DRP pipetasks
-+-------------------+-----------------+---------------+-------------+
-| pipetask          | # instances (M) | CPU hours (M) | maxRSS (GB) |
-+===================+=================+===============+=============+
-| isr               |            32.8 | 0.64          | 2.59        |
-+-------------------+-----------------+---------------+-------------+
-| characterizeImage |            32.8 | 1.23          | 0.83        |
-+-------------------+-----------------+---------------+-------------+
-| calibrate         |            32.8 | 0.76          | 0.79        |
-+-------------------+-----------------+---------------+-------------+
-| makeWarp          |            48.5 | 2.83          | 3.20        |
-+-------------------+-----------------+---------------+-------------+
-| assembleCoadd     |             2.7 | 0.44          | 1.48        |
-+-------------------+-----------------+---------------+-------------+
-| detection         |             2.7 | 0.12          | 1.39        |
-+-------------------+-----------------+---------------+-------------+
-| measure           |             2.7 | 6.12          | 2.79        |
-+-------------------+-----------------+---------------+-------------+
-| forcedPhotCoadd   |             2.7 | 7.56          | 1.77        |
-+-------------------+-----------------+---------------+-------------+
-| deblend           |             0.4 | 0.79          | 6.98        |
-+-------------------+-----------------+---------------+-------------+
++-------------------+-----------------+---------------+------------------+
+| pipetask          | # instances (M) | CPU hours (M) | max(maxRSS) (GB) |
++===================+=================+===============+==================+
+| isr               | 32.8            | 0.64          | 2.59             |
++-------------------+-----------------+---------------+------------------+
+| characterizeImage | 32.8            | 1.23          | 0.83             |
++-------------------+-----------------+---------------+------------------+
+| calibrate         | 32.8            | 0.76          | 0.79             |
++-------------------+-----------------+---------------+------------------+
+| makeWarp          | 48.5            | 2.83          | 3.20             |
++-------------------+-----------------+---------------+------------------+
+| assembleCoadd     |  2.7            | 0.44          | 1.48             |
++-------------------+-----------------+---------------+------------------+
+| detection         |  2.7            | 0.12          | 1.39             |
++-------------------+-----------------+---------------+------------------+
+| measure           |  2.7            | 6.12          | 2.79             |
++-------------------+-----------------+---------------+------------------+
+| forcedPhotCoadd   |  2.7            | 7.56          | 1.77             |
++-------------------+-----------------+---------------+------------------+
+| deblend           |  0.4            | 0.79          | 6.98             |
++-------------------+-----------------+---------------+------------------+
 
-**Table 3**: Overall procssing time estimates
+As noted, this profiling was done using Cori-Haswell nodes at NERSC.  For running on platforms with different processors and different memory configurations, we expect the overall processing time estimates to scale with the speed of execution of the tasks on the processors subject to constraints imposed by the memory per node and the number of cores per node.  Taking all that into account, Table 3 shows the overall processing time estimates for the three different systems that will be available at NERSC in late 2022.   The CPU factor of 8 for Cori-KNL was determined empirically by running the DRP code on those nodes, while the CPU factor of 1 for Perlmutter is a conservative estimate that we made before the Perlmutter system was available at NERSC.  As we'll see below, for the instrument signature removal (ISR) pipetask, the execution time on a Perlmutter CPU is about a factor of ~2 smaller compared to running on a Cori-Haswell CPU.
+
+**Table 3**: Overall processing time estimates
 
 .. _table-label:
-.. table:: Overall procssing time estimates
+.. table:: Overall processing time estimates
 +--------------+------------+----------------+----------------------+---------------+
 | platform     | CPU factor | cores per node | memory per node (GB) | node days (k) |
 +==============+============+================+======================+===============+
@@ -124,8 +129,12 @@ Processing Time Results
 | Perlmutter*  | 1          | 128            | 512                  | 7             |
 +--------------+------------+----------------+----------------------+---------------+
 
+In Table 3, we use the configuration of Perlmutter CPU nodes that are expected when Perlmutter phase 2 installation at NERSC has completed.  This configuration will be similar to the "rome" nodes at SLAC SDF, except that Perlmutter will use Milan processors, while SDF nodes use Rome processors.
+
 Disk Storage Needs
 ==================
+
+In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Keeping all of the data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD data volume would be 0.66 PB, yielding a factor of ~32 increase in data volume from DRP processing.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful to retain for later inspection when running its downstream analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 5 PB, which is about a factor ~8 increase in data volume.
 
 **Table 4**: DRP data products with >50TB total disk usage
 
