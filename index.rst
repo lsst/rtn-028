@@ -202,7 +202,7 @@ In Figure 7, we plot the distributions of job wall times for the compute-intensi
    :name: Distributions of wall times
    :alt: Figure 7
 
-To illustrate this more explicitly, in Figure 8, we plot the mean wall times for compute- and datastore-intensive operations versus # concurrent process, scaled to the 16-process values.  The wall time scalings for compute and datastore operations are clearly different, as we would expect.  The horizontal dotted line is the ratio of maximum boost frequence to base frequency for SDF-Rome, and it suggestively passes through the 128-process point.
+To illustrate this more explicitly, in Figure 8, we plot the mean wall times for compute- and datastore-intensive operations versus # concurrent process, scaled to the 16-process values.  The wall time scalings for compute and datastore operations are clearly different, as we would expect.  The horizontal dotted line is the ratio of maximum boost frequence to base frequency for SDF-Rome, and it suggestively passes through the 128-process point. **However, monitoring of**  ``/proc/cpuinfo`` **while running on an SDF-Rome node seems to indicate that the nodes are locked at their CPU base frequencies of 2 GHz.**
 
 **Figure 8**: Mean wall time for compute- and datastore-intensive operations versus # concurrent processes.
 
@@ -210,7 +210,7 @@ To illustrate this more explicitly, in Figure 8, we plot the mean wall times for
    :name:
    :alt: Figure 8
 
-*However, monitoring of*  ``/proc/cpuinfo`` *while running on an SDF-Rome node seems to indicate that the nodes are locked at their base frequencies of 2 GHz.*  More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling is occurring, but also that L3 cache access is also at issue.
+More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling **is** occurring and that L3 cache access is also at issue.
 
 .. .. rubric:: References
 
