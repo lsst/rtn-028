@@ -65,6 +65,8 @@ It's somewhat more difficult to estimate the numbers of visits per patch per ban
 Profiling the Individual Pipetasks
 ==================================
 
+*Note that all results presented in sections 5-7 used* ``lsst_distrib`` weeklies ``w_2021_21``, ``w_2021_22``, and ``w_2021_33``.
+
 In order to determine the resource requirements for each pipetask instance, we've profiled the various pipetasks by running the static science part of the DRP pipeline on tract 3828 of the Y1 DC2 data and harvested the metadata files that are produced.  These files contain per-process information such as the total CPU time used and the maximum memory that was required, i.e., the maximum resident set size (maxRSS).   Pipetasks that operate on visit-level data have relatively narrow-ranges of CPU time usage and maxRSS values.  For example, as shown in Figure 3, running on Cori-Haswell nodes at NERSC, the ``calibrate`` pipetask typically needs ~0.5-1.5 CPU minutes and ~0.79 GB of maxRSS memory.  By contrast, for the pipetasks that analyze the coadded images, both the CPU time and maxRSS values scale with the number of visits included in the coadd (See Figure 4).  For estimating resource needs for visit-level pipetasks, we take the 95-th percentile value of the CPU time or maxRSS distributions (dotted vertical lines in Figure 3). For the coadd-level pipetasks, we model the resource needs using a linear fit to the upper envelope of points in the plots of either CPU time or maxRSS versus number of visits in the coadd.  For those plots, the number of visits for a given patch is determined by averaging over the corresponding ``nImage`` FITS file, which contains the number of visit-level images contributing to each coadd pixel.
 
 **Figure 3**: CPU time and maxRSS distributions for the ``calibrate`` pipetask
@@ -172,6 +174,8 @@ In order to assess disk storage needs, we've computed the average file sizes for
 Throughput Scaling with Node Occupancy
 ======================================
 
+*The results in this section used* ``lsst_distrib`` *weeklies* ``w_2021_42`` *for Perlmutter,* ``w_2021_48`` *for Cori-KNL and Cori-Haswell, and* ``w_2022_02`` *for SLAC-SDF.*
+
 The estimates above of the overall processing times assume that job throughput scales linearly with the number of concurrent processes, assuming that on any given node, there are fewer processes than the number of cores.  However, contention for resources like memory bandwidth, cache space, or disk access can cause jobs to run more slowly as the number of concurrent processes increases.  In addition, thermal power limitations can reduce the CPU clock speeds from their maximum values if the compute load on the node is very high.
 
 In order to characterize the job throughput scaling as a function of node occupancy, we've run several thousand ISR pipetask jobs (as defined in the `DRP pipeline`_) on DC2 data for different numbers of concurrent processes, up to the number of available cores.  We've done this on the SDF-Rome nodes as well as on the Cori-KNL, Cori-Haswell, and Perlmutter phase 1 systems at NERSC.  For all four systems, we see similar behavior: For small numbers of concurrent processes (e.g., fewer than 32 on SDF), the throughput scales roughly linearly, and plateaus at higher loads.
@@ -210,7 +214,7 @@ To illustrate this more explicitly, in Figure 8, we plot the mean wall times for
    :name: fig-wall-time-vs-nproc
    :alt: Figure 8
 
-More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling **is** occurring and that L3 cache access is also at issue.
+More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling **is** occurring and that L3 cache load is also at issue.
 
 .. .. rubric:: References
 
