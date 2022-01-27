@@ -4,8 +4,8 @@
 
 Abstract
 ========
+We have profiled the various pipetasks in the DRP pipeline and have characterized the memory and CPU time usage of those tasks for processing DESC DC2 data.  We have also studied the efficiency of running on Rome and Milan processors at various levels of node occupancy.  This information is used to estimate the node hours required to do the first year of DRP processing of the Rubin WFD survey.
 
-We have profiled the various pipetasks in the DRP pipeline and have characterized the memory and CPU time usage of those task for processing DESC DC2 data.  We have also studied the efficiency of running on Rome and Milan processors at various levels of node occupancy.  This information is used to estimate the node hours required to do the first year of DRP processing of the Rubin WFD survey.
 
 Motivation and Background
 =========================
