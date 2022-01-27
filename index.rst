@@ -134,7 +134,7 @@ In Table 3, we use the configuration of Perlmutter CPU nodes that are expected w
 Disk Storage Needs
 ==================
 
-In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Keeping all of the data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD data volume would be 0.66 PB, yielding a factor of ~32 increase in data volume from DRP processing.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful to retain for later inspection when running its downstream analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 5 PB, which is about a factor ~8 increase in data volume.
+In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Keeping all of the data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD data volume would be 0.66 PB, yielding a factor of ~32 increase in data volume arising from DRP processing.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful to retain for later inspection when running its downstream analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 5 PB, which is about a factor ~8 increase in data volume.
 
 **Table 4**: DRP data products with >50TB total disk usage
 
@@ -169,9 +169,48 @@ In order to assess disk storage needs, we've computed the average file sizes for
 +-------------------+--------------------------+---------------------+-----------------+----------------+-------+
 
 
-
-Throughout Scaling with Node Occupancy
+Throughput Scaling with Node Occupancy
 ======================================
+
+The estimates above of the overall processing times assume that job throughput scales linearly with the number of concurrent processes, assuming that on any given node, there are fewer processes than the number of cores.  However, contention for resources like memory bandwidth, cache space, or disk access can cause jobs to run more slowly as the number of concurrent processes increases.  In addition, thermal power limitations can reduce the CPU clock speeds from their maximum values if the compute load on the node is very high.
+
+In order to characterize the job throughput scaling as a function of node occupancy, we've run several thousand ISR pipetask jobs on DC2 data for different numbers of concurrent processes, up to the number of available cores.  We've done this on the SDF-Rome nodes as well as on the Cori-KNL, Cori-Haswell, and Perlmutter phase 1 systems at NERSC.  For all four systems, we see similar behavior: For small numbers of concurrent processes (e.g., fewer than 32 on SDF), the throughput scales roughly linearly, but plateaus at higher loads.
+
+So that we can maintain a constant load on those systems, we used the ISR task since its resource usage is largely independent of the input data; and rather than relying on a workflow management system like Parsl (which may have some overhead that we can't control) to schedule the jobs, we reserved exclusive nodes in the slurm queues at SDF and at NERSC, and used the python ``subprocess`` and ``multiprocessing`` modules in a special purpose script to control the number of concurrent processes very precisely.
+
+Figure 5 shows the results of these tests.  The plot on the left shows the mean wall time for the ensemble of ISR jobs as a function of the number of concurrent processes.  For # concurrent processes > 48, we see significant departures from constant wall time on the SDF and Perlmutter systems (the Cori systems have either too few cores or too little memory to support this many ISR jobs).  The plot on the right shows the same data except with the throughput (jobs/s) plotted versus # concurrent processes.  The dotted lines show the expected linear scaling, extrapolating from the 16 processes value.  At the worst case, for 128 concurrent processes on SDF-Rome, the relative degradation in throughput is a factor ~2 relative to linear scaling.
+
+**Figure 5**: Throughput scaling for the ISR task on SLAC/SDF, Perlmutter, and Cori
+
+.. figure:: /_static/SDF-Perlmutter-Cori_isr_task_scaling.png
+   :name: Throughput scaling for the ISR task on SLAC/SDF, Perlmutter, and Cori
+   :alt: Figure 5
+
+Following a suggestion from K-T, we enabled debug-level logging in order to determine what's happening during the job when the slowdowns are occurring.  Apart from the time stamps, the log entries are the same for a given ISR instance, so we can easily match up entries and see exactly how the wall time for specific operations scale with the number of concurrent processes.  Figure 6 shows an example plot of time stamp index versus wall time from the start of the job.  We've filtered the time stamps to include just operations that involve either datastore I/O-related activities, indicated by stars in the plot, or compute intensive tasks, such as computing pixel statistics, applying crosstalk correction, or deconvolving the Brighter-Fatter kernel, which are all indicated by points.  The fact that the datastore I/O parts of the time histories cross indicates that disk activity on the cluster from other nodes is probably affecting those operations for this job.
+
+**Figure 6**: Time stamps vs job wall time for an ISR task instance running with different levels of node occupancy.
+
+.. figure:: /_static/sdf_timestamps_plot_isr_6854_51.png
+   :name: Time stamps vs job wall time for an ISR task instance
+   :alt: Figure 6
+
+In Figure 7, we plot the distributions of job wall times for the compute-intensive operations (left) and for the datastore operations (right).  For the compute-intensive slowdowns, Adrian Pope suggested that clock speed scaling of the CPU may be at issue.  At very high loads, the CPUs will approach the `Thermal Design Power (TDP) <https://en.wikipedia.org/wiki/Thermal_design_power>`__ limit where the average clock speeds are ~base frequency of the CPU.  At low loads, the cores can run closer to the maximum boost speed, so the fact that the compute wall time distributions are sharply peaked at 12 s for 16 and 32 concurrent processes is strongly suggestive that the cores are running at the maximum boost speed.  For the SDF-Rome CPUs, the maximum boost speed is 3.35 GHz and the base frequency is 2.0 GHz.  So if the jobs in the 128-process runs are suffering from TDP frequency scaling, their average wall times should be ~3.35/2.0 longer than the 16-process runs, or ~20 s.
+
+**Figure 7**: Distributions of wall times for compute- and datastore-intensive operations.
+
+.. figure:: /_static/isr_wall_time_distributions_SDF.png
+   :name: Distributions of wall times
+   :alt: Figure 7
+
+To illustrate this more explicitly, in Figure 8, we plot the mean wall times for compute- and datastore-intensive operations versus # concurrent process, scaled to the 16-process values.  The wall time scalings for compute and datastore operations are clearly different, as we would expect.  The horizontal dotted line is the ratio of maximum boost frequence to base frequency for SDF-Rome, and it suggestively passes through the 128-process point.
+
+**Figure 8**: Mean wall time for compute- and datastore-intensive operations versus # concurrent processes.
+
+.. figure:: /_static/isr_wall_time_vs_nproc_SDF.png
+   :name:
+   :alt: Figure 8
+
+*However, monitoring of*  ``/proc/cpuinfo`` *while running on an SDF-Rome node seems to indicate that the nodes are locked at their base frequencies of 2 GHz.*  More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling is occurring, but also that L3 cache access is also at issue.
 
 .. .. rubric:: References
 
