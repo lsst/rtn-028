@@ -136,7 +136,7 @@ In Table 3, we use the configuration of Perlmutter CPU nodes that are expected w
 Disk Storage Needs
 ==================
 
-In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Retaining all of these data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD raw data volume would be 0.66 PB, implying a factor of ~32 increase in data volume for the DRP outputs.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful for running its downstream validations and analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 5 PB, which is about a factor ~8 increase in data volume.
+In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Retaining all of these data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD raw data volume would be 0.66 PB, implying a factor of ~32 increase in data volume for the DRP outputs.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful for running its downstream validations and analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 4.2 PB, which is about a factor ~6 increase in data volume.
 
 **Table 4**: DRP data products with >50TB total disk usage
 
