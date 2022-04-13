@@ -206,9 +206,9 @@ In Figure 7, we plot the distributions of job wall times for the compute-intensi
    :name: fig-distributions-of-wall-times
    :alt: Figure 7
 
-To illustrate this more explicitly, in Figure 8, we plot the mean wall times for compute- and datastore-intensive operations versus # concurrent process, scaled to the 16-process values.  The wall time scalings for compute and datastore operations are clearly different, as we would expect.  The horizontal dotted line is the ratio of the maximum boost frequency to the base frequency for SDF-Rome CPUs, and it suggestively passes through the 128-process point. **However, monitoring of**  ``/proc/cpuinfo`` **while running on an SDF-Rome node seems to indicate that the nodes are locked at their CPU base frequencies of 2 GHz.**
+To illustrate this more explicitly, in Figure 8, we plot the mean wall times for compute- and datastore-intensive operations versus # concurrent process, scaled to the 16-process values.  The wall time scalings for compute and datastore operations are clearly different, as we would expect.  The horizontal dotted line is the ratio of the maximum boost frequency to the base frequency for SDF-Rome CPUs, and it suggestively passes through the 128-process point. Notably, monitoring of  ``/proc/cpuinfo`` while running on an SDF-Rome node seems to indicate that the nodes are locked at their CPU base frequencies of 2 GHz.  However, using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool to profile the ISR pipetasks shows that several effects, includng TDP scaling, are affecting the overall throughput as a function of the number of concurrent processes.
 
-**Figure 8**: Mean wall time for compute- and datastore-intensive operations versus # concurrent processes.
+**Figure 8**: Mean wall time for compute- and datastore-intensive operations versus #concurrent processes.
 
 .. figure:: /_static/isr_wall_time_vs_nproc_SDF.png
    :name: fig-wall-time-vs-nproc
@@ -219,7 +219,7 @@ To illustrate this more explicitly, in Figure 8, we plot the mean wall times for
 Using ``perf`` to profile the DRP pipetasks
 ---------------------------------------
 
-In order to get additional information on the CPU state while the pipetask jobs are executing, we used the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool to gather statistics for various performance counters for each job.  Prepending the ``perf stat -d`` command to each pipetask job command line yields output similar to that shown in Figure 9.
+In order to obtain additional information on the state of the CPU while the pipetask jobs are executing, we used the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool to gather statistics from various performance counters for each job.  Prepending the ``perf stat -d`` command to each pipetask job command line yields output similar to that shown in Figure 9.
 
 **Figure 9**: ``perf stat -d`` output for a job from a 16 concurrent process run.
 
@@ -228,9 +228,9 @@ In order to get additional information on the CPU state while the pipetask jobs 
    :alt: Figure 9
 |
 
-There are several quantities of interest in this output for understanding the performance scaling of these jobs.  Since the ISR task performs basically the same operations regardless of the input data, the number of ``instructions`` for all the jobs is essentially constant, i.e., 2.9e11 ``instructions``.  The number of ``cycles`` required to execute these instructions can vary if there is contention for resources, e.g., contention for L3 cache among the CPUs sharing that memory will result in ``LLC-load-misses`` which in turn will increase the number of ``cycles``.  Another important quantity is the ``task-clock`` time, which divided into the number of ``cycles`` yields the CPU frequency or clock speed.  In the above example, the CPU frequency is 3.057 GHz, which is higher than the 2.0 GHz base frequency indicating that this CPU is not running at TDP. Finally, the ``time elapsed``, ``user``, and ``sys`` times can be used to infer time the process spends not in the user or kernel code, e.g., time spent doing disk I/O or blocked by other processes using the CPU, if hyperthreading.  So, as long as # concurrent jobs is less than the number of available cores, the difference ``time elapsed - (user + sys)`` should provide a measure of the time spent doing disk I/O with larger values of that difference indicating contention for disk access.
+There are several quantities of interest in this output for understanding the performance scaling of these jobs.  Since the ISR task executes basically the same set of operations regardless of the input data, the number of ``instructions`` for all the jobs is essentially constant, i.e., ~2.9e11 instructions.  The ``cycles`` required to execute these instructions can vary if there is contention for resources, e.g., contention for L3 cache among the CPUs sharing that memory will result in ``LLC-load-misses``, which, in turn, will increase the number of cycles used.  Another important quantity is the ``task-clock`` time, which, divided into ``cycles``, yields the CPU frequency or clock speed.  In the above example, the CPU frequency is 3.057 GHz, higher than the 2.0 GHz base frequency, indicating that this CPU is not running at its TDP limit.  Finally, the ``time elapsed``, ``user``, and ``sys`` times can be used to infer the time that the process spends outside of user or kernel code, i.e., the time spent doing disk I/O or being blocked by other processes using the CPU (if hyperthreading).  As long as #concurrent jobs is less than the number of available cores, the difference ``time elapsed - (user + sys)`` should provide a measure of the time spent doing disk I/O, with larger values of that difference indicating contention for disk access.
 
-For 128 concurrent processes, in Figure 10, we see quite different ``perf stat -d`` output for the same ISR job:
+For 128 concurrent processes, we see quite different ``perf stat -d`` output for the same ISR job (Figure 10):
 
 **Figure 10**: ``perf stat -d`` output for a job from a 128 concurrent process run.
 
@@ -239,9 +239,9 @@ For 128 concurrent processes, in Figure 10, we see quite different ``perf stat -
    :alt: Figure 10
 |
 
-The number of ``LLC-load-misses`` is non-zero and significant and corresponds roughly to the increase in ``cycles`` relative to the 16-processes case.  Even though ``cycles`` increases, the ``task-clock`` value increases even more resulting in a lower clock speed of 2.265 GHz, a clear indication that TDP scaling is occurring.  Lastly, the ``time elapsed - (user + sys)`` also increases, consistent with higher disk I/O contention for the larger number of concurrent processes.
+The number of ``LLC-load-misses`` is significantly different from zero and corresponds roughly to the increase in ``cycles`` relative to the 16-process case.  However, even though ``cycles`` increases, the ``task-clock`` value increases even more, resulting in a clock speed of 2.265 GHz, clearly indicating that TDP scaling is occurring.  Lastly, the difference ``time elapsed - (user + sys)`` also increases, consistent with higher disk I/O contention for the larger number of concurrent processes.
 
-In Figure 11, we show the distributions of these three resource contention metrics: CPU frequency (upper left), wall - (user + sys) time (upper right), and # cycles (lower left), for runs with different numbers of concurrent processes, showing clear scaling with node occupancy.  In the lower right panel, we also plot ``cycles`` vs ``LLC-load-misses`` to show the correlation between these two quantities.
+In Figure 11, we show the distributions of these three resource contention metrics: CPU frequency (upper left), wall - (user + sys) time (upper right), and #cycles (lower left), for runs with different numbers of concurrent processes, showing clear scaling with node occupancy.  In the lower right panel, we also plot ``cycles`` vs ``LLC-load-misses`` to show the strong correlation between these two quantities.
 
 **Figure 11**: Distributions of resource contention metrics for different numbers of concurrent processes.
 
