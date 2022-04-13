@@ -10,7 +10,7 @@ We have profiled the various pipetasks in the DRP pipeline and have characterize
 Motivation and Background
 =========================
 
-This study was originally motivated by the need for the Dark Energy Science Collaboration (DESC) to understand its computing resource needs for systematics assessments that require pixel-level reprocessing of the first year (Y1) of Rubin data.  In practice, these assessments would involve the reprocessing of several smaller datasets, using alternative algorithms and/or data selections, or could include simulated images.  Therefore, as rough guide to the needed resources, DESC settled on the goal of reprocessing 10% of Y1 data 10 times as the target workload for this study.  For simplicity, we've recast this as doing a full DRP processing of the Y1 Wide Fast Deep (WFD) Rubin observations.  The WFD survey comprises ~80% of the Y1 data, and it provides a relatively homogeneous data set that's relevant for DESC's needs and which makes the resource estimation straight forward.
+This study was originally motivated by the need for the Dark Energy Science Collaboration (DESC) to understand its computing resource needs for systematics assessments that require pixel-level reprocessing of the first year (Y1) of Rubin data.  In practice, these assessments would involve the reprocessing of several smaller data sets, using alternative algorithms and/or data selections, or could include simulated images.  Therefore, as rough guide to the needed resources, DESC settled on the goal of reprocessing 10% of Y1 data 10 times as the target workload for this study.  For simplicity, we've recast this as doing a full DRP processing of the Y1 Wide Fast Deep (WFD) Rubin observations.  The WFD survey comprises ~80% of the Y1 data, and it provides a relatively homogeneous data set that's relevant for DESC's needs and which makes the resource estimation straight forward.
 
 Inputs to Estimating the Y1 WFD DRP Processing
 ==============================================
@@ -136,7 +136,7 @@ In Table 3, we use the configuration of Perlmutter CPU nodes that are expected w
 Disk Storage Needs
 ==================
 
-In order to assess disk storage needs, we've computed the average file sizes for the different dataset types, and in Table 4 we show the DRP data product dataset types that would take up >50TB of disk space.  Retaining all of these data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD raw data volume would be 0.66 PB, implying a factor of ~32 increase in data volume for the DRP outputs.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful for running its downstream validations and analyses are marked with ``Y`` in the **Keep?** column.  Keeping those datasets yields 4.2 PB, which is about a factor ~6 increase in data volume.
+In order to assess disk storage needs, we've computed the average file sizes for the different data set types, and in Table 4 we show the DRP data product data set types that would take up >50TB of disk space.  Retaining all of these data products would require ~21 PB of disk space.  Based on the compressed raw image file sizes for DC2, ~20 MB per file, the Y1 WFD raw data volume would be 0.66 PB, implying a factor of ~32 increase in data volume for the DRP outputs.  Most of the data products produced by the DRP pipeline aren't needed long term.  The ones that DESC found useful for running its downstream validations and analyses are marked with ``Y`` in the **Keep?** column.  Keeping those data sets yields 4.2 PB, which is about a factor ~6 increase in data volume.
 
 **Table 4**: DRP data products with >50TB total disk usage
 
@@ -198,7 +198,7 @@ Following a suggestion from K-T, we enabled debug-level logging in order to dete
    :name: fig-time-stamps-vs-job-wall-time-example
    :alt: Figure 6
 
-In Figure 7, we plot the distributions of job wall times for the compute-intensive operations (left) and for the datastore operations (right).  For the compute-intensive slowdowns, Adrian Pope suggested that clock speed scaling of the CPU may be occurring.  At very high loads, the CPUs will approach the `Thermal Design Power (TDP) <https://en.wikipedia.org/wiki/Thermal_design_power>`__ limit where the average clock speeds are at the ~base frequency of the CPU.  At low loads, the cores can run closer to the maximum boost speed, so the fact that the compute-intesive wall time distributions are sharply peaked at 12 s for 16 and 32 concurrent processes strongly suggests that the cores are running at the maximum boost speed.  For the SDF-Rome CPUs, the maximum boost speed is 3.35 GHz, while the base frequency is 2.0 GHz.  So if the jobs in the 128-process runs are suffering from TDP frequency scaling, their average wall times should be ~3.35/2.0 longer than the 16-process runs, or ~20 s.
+In Figure 7, we plot the distributions of job wall times for the compute-intensive operations (left) and for the datastore operations (right).  For the compute-intensive slowdowns, Adrian Pope suggested that clock speed scaling of the CPU may be occurring.  At very high loads, the CPUs will approach the `Thermal Design Power (TDP) <https://en.wikipedia.org/wiki/Thermal_design_power>`__ limit where the average clock speeds are at the ~base frequency of the CPU.  At low loads, the cores can run closer to the maximum boost speed, so the fact that the compute-intensive wall time distributions are sharply peaked at 12 s for 16 and 32 concurrent processes strongly suggests that the cores are running at the maximum boost speed.  For the SDF-Rome CPUs, the maximum boost speed is 3.35 GHz, while the base frequency is 2.0 GHz.  So if the jobs in the 128-process runs are suffering from TDP frequency scaling, their average wall times should be ~3.35/2.0 longer than the 16-process runs, or ~20 s.
 
 **Figure 7**: Distributions of wall times for compute- and datastore-intensive operations.
 
@@ -213,8 +213,41 @@ To illustrate this more explicitly, in Figure 8, we plot the mean wall times for
 .. figure:: /_static/isr_wall_time_vs_nproc_SDF.png
    :name: fig-wall-time-vs-nproc
    :alt: Figure 8
+|
 
-More recent work using the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool indicates that frequency scaling **is** occurring and that L3 cache load is also at issue.
+
+Using ``perf`` to profile the DRP pipetasks
+---------------------------------------
+
+In order to get additional information on the CPU state while the pipetask jobs are executing, we used the `perf <https://perf.wiki.kernel.org/index.php/Main_Page>`__ tool to gather statistics for various performance counters for each job.  Prepending the ``perf stat -d`` command to each pipetask job command line yields output similar to that shown in Figure 9.
+
+**Figure 9**: ``perf stat -d`` output for a job from a 16 concurrent process run.
+
+.. figure :: /_static/perf_output_16_procs_SDF.png
+   :name: fig-perf-output-16-procs-SDF
+   :alt: Figure 9
+|
+
+There are several quantities of interest in this output for understanding the performance scaling of these jobs.  Since the ISR task performs basically the same operations regardless of the input data, the number of ``instructions`` for all the jobs is essentially constant, i.e., 2.9e11 ``instructions``.  The number of ``cycles`` required to execute these instructions can vary if there is contention for resources, e.g., contention for L3 cache among the CPUs sharing that memory will result in ``LLC-load-misses`` which in turn will increase the number of ``cycles``.  Another important quantity is the ``task-clock`` time, which divided into the number of ``cycles`` yields the CPU frequency or clock speed.  In the above example, the CPU frequency is 3.057 GHz, which is higher than the 2.0 GHz base frequency indicating that this CPU is not running at TDP. Finally, the ``time elapsed``, ``user``, and ``sys`` times can be used to infer time the process spends not in the user or kernel code, e.g., time spent doing disk I/O or blocked by other processes using the CPU, if hyperthreading.  So, as long as # concurrent jobs is less than the number of available cores, the difference ``time elapsed - (user + sys)`` should provide a measure of the time spent doing disk I/O with larger values of that difference indicating contention for disk access.
+
+For 128 concurrent processes, in Figure 10, we see quite different ``perf stat -d`` output for the same ISR job:
+
+**Figure 10**: ``perf stat -d`` output for a job from a 128 concurrent process run.
+
+.. figure :: /_static/perf_output_128_procs_SDF.png
+   :name: fig-perf-output-128-procs-SDF
+   :alt: Figure 10
+|
+
+The number of ``LLC-load-misses`` is non-zero and significant and corresponds roughly to the increase in ``cycles`` relative to the 16-processes case.  Even though ``cycles`` increases, the ``task-clock`` value increases even more resulting in a lower clock speed of 2.265 GHz, a clear indication that TDP scaling is occurring.  Lastly, the ``time elapsed - (user + sys)`` also increases, consistent with higher disk I/O contention for the larger number of concurrent processes.
+
+In Figure 11, we show the distributions of these three resource contention metrics: CPU frequency (upper left), wall - (user + sys) time (upper right), and # cycles (lower left), for runs with different numbers of concurrent processes, showing clear scaling with node occupancy.  In the lower right panel, we also plot ``cycles`` vs ``LLC-load-misses`` to show the correlation between these two quantities.
+
+**Figure 11**: Distributions of resource contention metrics for different numbers of concurrent processes.
+
+.. figure :: /_static/perf_statistics_ISR_on_SDF.png
+   :name: fig-perf-statistics-ISR-on-SDF
+   :alt: Figure 11
 
 .. .. rubric:: References
 
